@@ -2,8 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>Source Code</key>
-	<string>https://github.com/the-darkvoid/OS-X-IOElectrify</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleExecutable</key>
@@ -26,41 +24,43 @@
 	<dict>
 		<key>IOElectrify</key>
 		<dict>
+			<key>#IOUserClientClass</key>
+			<string>IOElectrifyUserClient</string>
 			<key>CFBundleIdentifier</key>
 			<string>org.darkvoid.driver.IOElectrify</string>
 			<key>IOClass</key>
 			<string>IOElectrify</string>
-			<key>IOProviderClass</key>
-			<string>IOACPIPlatformDevice</string>
-			<key>IOProbeScore</key>
-			<integer>10</integer>
 			<key>IONameMatch</key>
 			<array>
 				<string>PNP0C14</string>
 				<string>pnp0c14</string>
 			</array>
+			<key>IOProbeScore</key>
+			<integer>10</integer>
 			<key>IOPropertyMatch</key>
 			<dict>
 				<key>_UID</key>
 				<string>TBFP</string>
 			</dict>
+			<key>IOProviderClass</key>
+			<string>IOACPIPlatformDevice</string>
 		</dict>
 		<key>IOElectrifyBridge</key>
 		<dict>
-			<key>#CFBundleIdentifier</key>
+			<key>CFBundleIdentifier</key>
 			<string>org.darkvoid.driver.IOElectrify</string>
-			<key>#IOClass</key>
+			<key>IOClass</key>
 			<string>IOElectrifyBridge</string>
-			<key>#IOProviderClass</key>
-			<string>IOPCI2PCIBridge</string>
-			<key>#IOProbeScore</key>
-			<integer>10</integer>
-			<key>#IOPCIClassMatch</key>
-			<string>0x06040000&amp;0xffff0000</string>
-			<key>#IOPCIPrimaryMatch</key>
-			<string>0x76158086</string>
-			<key>#IOMatchCategory</key>
+			<key>IOMatchCategory</key>
 			<string>IOElectrify</string>
+			<key>IOPCIClassMatch</key>
+			<string>0x06040000&amp;0xffff0000</string>
+			<key>IOPCIPrimaryMatch</key>
+			<string>0x76158086</string>
+			<key>IOProbeScore</key>
+			<integer>10</integer>
+			<key>IOProviderClass</key>
+			<string>IOPCI2PCIBridge</string>
 		</dict>
 	</dict>
 	<key>OSBundleCompatibleVersion</key>
@@ -84,5 +84,7 @@
 	</dict>
 	<key>OSBundleRequired</key>
 	<string>Root</string>
+	<key>Source Code</key>
+	<string>https://github.com/the-darkvoid/OS-X-IOElectrify</string>
 </dict>
 </plist>

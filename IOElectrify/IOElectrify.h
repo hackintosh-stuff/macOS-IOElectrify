@@ -36,7 +36,7 @@ class IOElectrify : public IOService
 protected:
     IOPCIDevice* mProvider;
     WMI* mWMI;
-
+	void TBFP(bool ON);
 public:
     virtual bool init(OSDictionary *propTable);
     virtual bool attach(IOService *provider);

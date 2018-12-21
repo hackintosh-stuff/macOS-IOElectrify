@@ -140,48 +140,43 @@ void IOElectrify::detach(IOService *provider)
 }
 #endif
 
+void IOElectrify::TBFP(bool ON)
+{
+    if (mWMI->hasMethod(INTEL_WMI_THUNDERBOLT_GUID)) {
+        
+        OSObject* params[3] = {
+            OSNumber::withNumber(0ULL, 32),
+            OSNumber::withNumber(0ULL, 32),
+            OSNumber::withNumber((unsigned long long)ON, 32)
+        };
+        
+        if (mWMI->executeMethod(INTEL_WMI_THUNDERBOLT_GUID, NULL, params, 3)) {
+					if (ON)
+                    	AlwaysLog("Thunderbolt force-power: ON.\n");
+					else
+						AlwaysLog("Thunderbolt force-power: OFF.\n");
+        }
+    }
+}
+
 IOReturn IOElectrify::setPowerState(unsigned long powerState, IOService *service)
 {
     DebugLog("setPowerState %ld\n", powerState);
     
+	
     switch (powerState)
     {
         case kPowerStateSleep:
             DebugLog("--> sleep(%d)\n", (int)powerState);
-
-            if (mWMI->hasMethod(INTEL_WMI_THUNDERBOLT_GUID)) {
-                
-                OSObject* params[3] = {
-                    OSNumber::withNumber(0ULL, 32),
-                    OSNumber::withNumber(0ULL, 32),
-                    OSNumber::withNumber(0ULL, 32)
-                };
-                
-                if (mWMI->executeMethod(INTEL_WMI_THUNDERBOLT_GUID, NULL, params, 3)) {
-                    AlwaysLog("Thunderbolt force-power: OFF.\n");
-                }
-            }
-            
+			TBFP(false);
             break;
-
         case kPowerStateDoze:
         case kPowerStateNormal:
             DebugLog("--> awake(%d)\n", (int)powerState);
-            
-            if (mWMI->hasMethod(INTEL_WMI_THUNDERBOLT_GUID)) {
-                
-                OSObject* params[3] = {
-                    OSNumber::withNumber(0ULL, 32),
-                    OSNumber::withNumber(0ULL, 32),
-                    OSNumber::withNumber(1ULL, 32)
-                };
-                
-                if (mWMI->executeMethod(INTEL_WMI_THUNDERBOLT_GUID, NULL, params, 3)) {
-                    AlwaysLog("Thunderbolt force-power: ON.\n");
-                }
-            }
+            TBFP(true);
             break;
     }
+	
     
     return IOPMAckImplied;
 }
