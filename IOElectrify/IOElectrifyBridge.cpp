@@ -159,6 +159,7 @@ IOReturn IOElectrifyBridge::setPowerState(unsigned long powerState, IOService *s
 	    {
 	        case kPowerStateSleep:
 	            DebugLog("--> sleep(%d)\n", (int)powerState);
+				probeDev(kIOPCIProbeOptionEject | kIOPCIProbeOptionDone);
 	            break;
 	        case kPowerStateDoze:
 	        case kPowerStateNormal:

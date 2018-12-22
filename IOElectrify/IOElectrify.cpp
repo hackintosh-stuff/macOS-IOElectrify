@@ -203,8 +203,15 @@ IOReturn IOElectrify::setPowerState(unsigned long powerState, IOService *service
 
 const IOExternalMethodDispatch IOElectrifyUserClient::sMethods[kClientNumMethods] =
 {
-    { // kClientExecuteCMD
-        (IOExternalMethodAction)&IOElectrifyUserClient::executeCMD,
+    { // kClientExecuteTBFP
+        (IOExternalMethodAction)&IOElectrifyUserClient::executeTBFP,
+        1, // One scalar input value
+        0, // No struct inputs
+        1, // One scalar output value
+        0  // No struct outputs
+    },
+    { //kClientTogglePowerHook
+        (IOExternalMethodAction)&IOElectrifyUserClient::togglePowerHook,
         1, // One scalar input value
         0, // No struct inputs
         1, // One scalar output value
@@ -306,7 +313,7 @@ IOReturn IOElectrifyUserClient::externalMethod(uint32_t selector, IOExternalMeth
         
         if (!target)
         {
-            if (selector == kClientExecuteCMD)
+            if (selector == kClientExecuteTBFP || selector == kClientTogglePowerHook)
                 target = providertarget;
             else
                 target = this;
@@ -315,7 +322,14 @@ IOReturn IOElectrifyUserClient::externalMethod(uint32_t selector, IOExternalMeth
     return IOUserClient::externalMethod(selector, arguments, dispatch, target, reference);
 }
 
-IOReturn IOElectrifyUserClient::executeCMD(IOElectrify* target, void* reference, IOExternalMethodArguments* arguments)
+IOReturn IOElectrifyUserClient::togglePowerHook(IOElectrify* target, void* reference, IOExternalMethodArguments* arguments)
+{
+    target->mEnablePowerHook = (bool)arguments->scalarInput[0];
+    target->setProperty("PowerHook", target->mEnablePowerHook);
+    return kIOReturnSuccess;
+}
+
+IOReturn IOElectrifyUserClient::executeTBFP(IOElectrify* target, void* reference, IOExternalMethodArguments* arguments)
 {
     arguments->scalarOutput[0] = target->TBFP((UInt32)arguments->scalarInput[0]);
     return kIOReturnSuccess;

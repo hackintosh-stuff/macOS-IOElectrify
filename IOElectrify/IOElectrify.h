@@ -31,7 +31,8 @@
 // External client methods
 enum
 {
-    kClientExecuteCMD = 0,
+    kClientExecuteTBFP = 0,
+    kClientTogglePowerHook,
     kClientNumMethods
 };
 
@@ -73,7 +74,8 @@ public:
     virtual IOReturn clientClose(void);
     virtual IOReturn externalMethod(uint32_t selector, IOExternalMethodArguments *arguments, IOExternalMethodDispatch* dispatch = 0,
                                     OSObject* target = 0, void* reference = 0);
-    static IOReturn executeCMD(IOElectrify* target, void* reference, IOExternalMethodArguments* arguments);
+    static IOReturn togglePowerHook(IOElectrify* target, void* reference, IOExternalMethodArguments* arguments);
+    static IOReturn executeTBFP(IOElectrify* target, void* reference, IOExternalMethodArguments* arguments);
 };
 
 #endif
