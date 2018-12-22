@@ -28,6 +28,13 @@
 
 #define INTEL_WMI_THUNDERBOLT_GUID "86ccfd48-205e-4a77-9c48-2021cbede341"
 
+// External client methods
+enum
+{
+    kClientExecuteCMD = 0,
+    kClientNumMethods
+};
+
 class IOElectrify : public IOService
 {
     OSDeclareDefaultStructors(IOElectrify);
@@ -36,13 +43,14 @@ class IOElectrify : public IOService
 protected:
     IOPCIDevice* mProvider;
     WMI* mWMI;
-	void TBFP(bool ON);
 public:
     virtual bool init(OSDictionary *propTable);
     virtual bool attach(IOService *provider);
     virtual bool start(IOService *provider);
     virtual void stop(IOService *provider);
     virtual void free();
+	UInt32 TBFP(UInt32 ON);
+	bool mEnablePowerHook = false;
 #ifdef DEBUG
     virtual void detach(IOService *provider);
 #endif
@@ -50,5 +58,22 @@ public:
     virtual IOReturn setPowerState(unsigned long powerState, IOService *service);
 };
 
+class IOElectrifyUserClient : public IOUserClient
+{
+    OSDeclareDefaultStructors(IOElectrifyUserClient)
+private:
+    IOElectrify* providertarget;
+    task_t mTask;
+    SInt32 mOpenCount;
+    static const IOExternalMethodDispatch sMethods[kClientNumMethods];
+public:
+    virtual bool start(IOService* provider);
+    virtual void stop(IOService* provider);
+    virtual bool initWithTask(task_t owningTask, void * securityID, UInt32 type, OSDictionary* properties);
+    virtual IOReturn clientClose(void);
+    virtual IOReturn externalMethod(uint32_t selector, IOExternalMethodArguments *arguments, IOExternalMethodDispatch* dispatch = 0,
+                                    OSObject* target = 0, void* reference = 0);
+    static IOReturn executeCMD(IOElectrify* target, void* reference, IOExternalMethodArguments* arguments);
+};
 
 #endif

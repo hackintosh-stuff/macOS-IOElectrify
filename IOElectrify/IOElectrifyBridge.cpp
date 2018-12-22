@@ -18,17 +18,41 @@
  */
 
 #include <IOKit/IOLib.h>
+#include <IOKit/IOUserClient.h>
 #include "IOElectrifyBridge.h"
 
 #include <libkern/version.h>
 extern kmod_info_t kmod_info;
+
+#define kIOElectrifyBridgePowerHookKey "IOElectrifyBridgePowerHook"
+#define kMatchParentNameKey "MatchParentName"
+
+// define & enumerate power states
+enum
+{
+    kPowerStateSleep    = 0,
+    kPowerStateDoze     = 1,
+    kPowerStateNormal   = 2,
+    kPowerStateCount
+};
 
 OSDefineMetaClassAndStructors(IOElectrifyBridge, IOService);
 
 bool IOElectrifyBridge::init(OSDictionary *propTable)
 {
     DebugLog("IOElectrifyBridge::init() %p\n", this);
-    
+
+	OSBoolean *osBool;
+	osBool = OSDynamicCast(OSBoolean, propTable->getObject(kIOElectrifyBridgePowerHookKey));
+	if (osBool)
+		mEnablePowerHook = (bool)osBool->getValue();
+	else
+		mEnablePowerHook = false;
+	
+	OSString *osStr;
+	osStr = OSDynamicCast(OSString, propTable->getObject(kMatchParentNameKey));
+	strncpy(parentName, osStr->getCStringNoCopy(), osStr->getLength());
+	
     // announce version
     IOLog("IOElectrifyBridge: Version %s starting on OS X Darwin %d.%d.\n", kmod_info.version, version_major, version_minor);
     
@@ -38,7 +62,9 @@ bool IOElectrifyBridge::init(OSDictionary *propTable)
         AlwaysLog("super::init returned false\n");
         return false;
     }
-    
+	
+    setProperty("PowerHook", mEnablePowerHook);
+	
     // place version/build info in ioreg properties DV,Build and DV,Version
     char buf[128];
     snprintf(buf, sizeof(buf), "%s %s", kmod_info.name, kmod_info.version);
@@ -66,8 +92,8 @@ bool IOElectrifyBridge::attach(IOService* provider)
 
     DebugLog("Provider -> Provider %s\n", mProvider->getProvider()->getName());
 
-    if (strcmp(mProvider->getProvider()->getName(), "RP01")) {
-        DebugLog("Mismatch %s vs RP15\n", mProvider->getProvider()->getName());
+    if (strcmp(mProvider->getProvider()->getName(), parentName)) {
+        DebugLog("Mismatch %s vs %s\n", mProvider->getProvider()->getName(), parentName);
         return false;
     }
 
@@ -83,18 +109,20 @@ bool IOElectrifyBridge::start(IOService *provider)
         AlwaysLog("super::start returned false\n");
         return false;
     }
-    
-    SInt32 score = 0;
-    
-    //mProvider->probe(mProvider, &score);
-    
-    //DebugLog("Probe score: %d", score);
-    
-    IOOptionBits options = 0;
-    
-    mProvider->requestProbe(options);
+    probeDev(0);
     
     return true;
+}
+
+UInt32 IOElectrifyBridge::probeDev(UInt32 options)
+{
+    //SInt32 score = 0;
+    //mProvider->probe(mProvider, &score);
+    //DebugLog("Probe score: %d", score);
+    
+    //IOOptionBits options = 0;
+	DebugLog("probeDev options: 0x%lx\n", options);
+    return mProvider->requestProbe(options);
 }
 
 void IOElectrifyBridge::stop(IOService *provider)
@@ -120,3 +148,152 @@ void IOElectrifyBridge::detach(IOService *provider)
 }
 #endif
 
+
+IOReturn IOElectrifyBridge::setPowerState(unsigned long powerState, IOService *service)
+{
+    DebugLog("setPowerState %ld\n", powerState);
+    
+	if (mEnablePowerHook)
+	{
+	    switch (powerState)
+	    {
+	        case kPowerStateSleep:
+	            DebugLog("--> sleep(%d)\n", (int)powerState);
+	            break;
+	        case kPowerStateDoze:
+	        case kPowerStateNormal:
+	            DebugLog("--> awake(%d)\n", (int)powerState);
+				probeDev(kIOPCIProbeOptionNeedsScan | kIOPCIProbeOptionDone);
+	            break;
+	    }
+	}
+	
+	
+    
+    return IOPMAckImplied;
+}
+
+
+//*********************************************************************
+// Userspace Client:
+//*********************************************************************
+
+const IOExternalMethodDispatch IOElectrifyBridgeUserClient::sMethods[kClientNumMethods] =
+{
+    { // kClientExecuteCMD
+        (IOExternalMethodAction)&IOElectrifyBridgeUserClient::executeCMD,
+        1, // One scalar input value
+        0, // No struct inputs
+        1, // One scalar output value
+        0  // No struct outputs
+    }
+};
+
+// Structure of IOExternalMethodDispatch:
+// https://developer.apple.com/library/content/samplecode/SimpleUserClient/Listings/User_Client_Info_txt.html
+/*
+ struct IOExternalMethodDispatch
+ {
+ IOExternalMethodAction function;
+ uint32_t           checkScalarInputCount;
+ uint32_t           checkStructureInputSize;
+ uint32_t           checkScalarOutputCount;
+ uint32_t           checkStructureOutputSize;
+ };
+*/
+
+/*
+ * Define the metaclass information that is used for runtime
+ * typechecking of IOKit objects. We're a subclass of IOUserClient.
+ */
+
+OSDefineMetaClassAndStructors(IOElectrifyBridgeUserClient, IOUserClient)
+
+//
+// IOUserClient user-kernel boundary interface init (initWithTask)
+//
+
+bool IOElectrifyBridgeUserClient::initWithTask(task_t owningTask, void* securityID, UInt32 type, OSDictionary* properties)
+{
+    IOLog("Client::initWithTask(type %u)\n", (unsigned int)type);
+    
+    mTask = owningTask;
+    
+    return IOUserClient::initWithTask(owningTask, securityID, type, properties);
+}
+
+//
+// IOUserClient user-kernel boundary interface start
+//
+
+bool IOElectrifyBridgeUserClient::start(IOService * provider)
+{
+    bool result = IOUserClient::start(provider);
+    IOLog("Client::start\n");
+    
+    if(!result)
+        return(result);
+    
+    /*
+     * Provider is always IOElectrify
+     */
+    assert(OSDynamicCast(IOElectrifyBridge, provider));
+    providertarget = (IOElectrifyBridge*) provider;
+    
+    mOpenCount = 1;
+    
+    return result;
+}
+
+//
+// IOUserClient user-kernel boundary interface client exit behavior
+//
+
+IOReturn IOElectrifyBridgeUserClient::clientClose(void)
+{
+    if (!isInactive())
+        terminate();
+    
+    return kIOReturnSuccess;
+}
+
+//
+// IOUserClient user-kernel boundary interface stop override 
+//
+
+void IOElectrifyBridgeUserClient::stop(IOService * provider)
+{
+    IOLog("Client::stop\n");
+    
+    IOUserClient::stop(provider);
+}
+
+//
+// IOUserClient handle external method
+//
+
+IOReturn IOElectrifyBridgeUserClient::externalMethod(uint32_t selector, IOExternalMethodArguments* arguments,
+                                              IOExternalMethodDispatch* dispatch, OSObject* target, void* reference)
+{
+    DebugLog("%s[%p]::%s(%d, %p, %p, %p, %p)\n", getName(), this, __FUNCTION__, selector, arguments, dispatch, target, reference);
+    
+    if (selector < (uint32_t)kClientNumMethods)
+    {
+        dispatch = (IOExternalMethodDispatch *)&sMethods[selector];
+        
+        if (!target)
+        {
+            if (selector == kClientExecuteCMD)
+                target = providertarget;
+            else
+                target = this;
+        }
+    }
+    return IOUserClient::externalMethod(selector, arguments, dispatch, target, reference);
+}
+
+IOReturn IOElectrifyBridgeUserClient::executeCMD(IOElectrifyBridge* target, void* reference, IOExternalMethodArguments* arguments)
+{
+    arguments->scalarOutput[0] = target->probeDev((UInt32)arguments->scalarInput[0]);
+    return kIOReturnSuccess;
+}

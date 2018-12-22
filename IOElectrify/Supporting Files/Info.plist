@@ -24,12 +24,12 @@
 	<dict>
 		<key>IOElectrify</key>
 		<dict>
-			<key>#IOUserClientClass</key>
-			<string>IOElectrifyUserClient</string>
 			<key>CFBundleIdentifier</key>
 			<string>org.darkvoid.driver.IOElectrify</string>
 			<key>IOClass</key>
 			<string>IOElectrify</string>
+			<key>IOElectrifyPowerHook</key>
+			<false/>
 			<key>IONameMatch</key>
 			<array>
 				<string>PNP0C14</string>
@@ -44,6 +44,8 @@
 			</dict>
 			<key>IOProviderClass</key>
 			<string>IOACPIPlatformDevice</string>
+			<key>IOUserClientClass</key>
+			<string>IOElectrifyUserClient</string>
 		</dict>
 		<key>IOElectrifyBridge</key>
 		<dict>
@@ -51,6 +53,8 @@
 			<string>org.darkvoid.driver.IOElectrify</string>
 			<key>IOClass</key>
 			<string>IOElectrifyBridge</string>
+			<key>IOElectrifyBridgePowerHook</key>
+			<false/>
 			<key>IOMatchCategory</key>
 			<string>IOElectrify</string>
 			<key>IOPCIClassMatch</key>
@@ -61,6 +65,10 @@
 			<integer>10</integer>
 			<key>IOProviderClass</key>
 			<string>IOPCI2PCIBridge</string>
+			<key>IOUserClientClass</key>
+			<string>IOElectrifyBridgeUserClient</string>
+			<key>MatchParentName</key>
+			<string>RP01</string>
 		</dict>
 	</dict>
 	<key>OSBundleCompatibleVersion</key>

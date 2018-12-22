@@ -31,6 +31,14 @@
 #endif
 #define AlwaysLog(args...) do { IOLog("IOElectrifyBridge: " args); } while (0)
 
+
+// External client methods
+enum
+{
+    kClientExecuteCMD = 0,
+    kClientNumMethods
+};
+
 class IOElectrifyBridge : public IOService
 {
     OSDeclareDefaultStructors(IOElectrifyBridge);
@@ -44,12 +52,33 @@ public:
     virtual bool attach(IOService *provider);
     virtual bool start(IOService *provider);
     virtual void stop(IOService *provider);
+    UInt32 probeDev(UInt32 options);
     virtual void free();
+	bool mEnablePowerHook = false;
+	char parentName[128];
 #ifdef DEBUG
     virtual void detach(IOService *provider);
 #endif
+	virtual IOReturn setPowerState(unsigned long powerState, IOService *service);
 };
 
+class IOElectrifyBridgeUserClient : public IOUserClient
+{
+    OSDeclareDefaultStructors(IOElectrifyBridgeUserClient)
+private:
+    IOElectrifyBridge* providertarget;
+    task_t mTask;
+    SInt32 mOpenCount;
+    static const IOExternalMethodDispatch sMethods[kClientNumMethods];
+public:
+    virtual bool start(IOService* provider);
+    virtual void stop(IOService* provider);
+    virtual bool initWithTask(task_t owningTask, void * securityID, UInt32 type, OSDictionary* properties);
+    virtual IOReturn clientClose(void);
+    virtual IOReturn externalMethod(uint32_t selector, IOExternalMethodArguments *arguments, IOExternalMethodDispatch* dispatch = 0,
+                                    OSObject* target = 0, void* reference = 0);
+    static IOReturn executeCMD(IOElectrifyBridge* target, void* reference, IOExternalMethodArguments* arguments);
+};
 
 #endif
 
