@@ -51,12 +51,9 @@ bool IOElectrify::init(OSDictionary *propTable)
 {
     DebugLog("IOElectrify::init() %p\n", this);
 
-	OSBoolean *osBool;
-	osBool = OSDynamicCast(OSBoolean, propTable->getObject(kIOElectrifyPowerHookKey));
-	if (osBool)
-		mEnablePowerHook = (bool)osBool->getValue();
-	else
-		mEnablePowerHook = false;
+	OSNumber *osNum;
+	osNum = OSDynamicCast(OSNumber, propTable->getObject(kIOElectrifyPowerHookKey));
+	mPowerHook = osNum->unsigned32BitValue();
 	
     // announce version
     IOLog("IOElectrify: Version %s starting on OS X Darwin %d.%d.\n", kmod_info.version, version_major, version_minor);
@@ -67,8 +64,6 @@ bool IOElectrify::init(OSDictionary *propTable)
         AlwaysLog("super::init returned false\n");
         return false;
     }
-	
-	setProperty("PowerHook", mEnablePowerHook);
 	
     // place version/build info in ioreg properties DV,Build and DV,Version
     char buf[128];
@@ -175,22 +170,23 @@ UInt32 IOElectrify::TBFP(UInt32 ON)
 IOReturn IOElectrify::setPowerState(unsigned long powerState, IOService *service)
 {
     DebugLog("setPowerState %ld\n", powerState);
-	
-	if (mEnablePowerHook) 
-	{
+	//if (mEnablePowerHook) 
+	//{
 	    switch (powerState)
 	    {
 	        case kPowerStateSleep:
 	            DebugLog("--> sleep(%d)\n", (int)powerState);
-				TBFP(0ULL);
+                if (mPowerHook & 0x1)
+				    TBFP(0ULL);
 	            break;
 	        case kPowerStateDoze:
 	        case kPowerStateNormal:
 	            DebugLog("--> awake(%d)\n", (int)powerState);
-	            TBFP(1ULL);
+                if (mPowerHook & 0x2)
+	                TBFP(1ULL);
 	            break;
 	    }
-	}
+    //}
     
     return IOPMAckImplied;
 }
@@ -324,8 +320,11 @@ IOReturn IOElectrifyUserClient::externalMethod(uint32_t selector, IOExternalMeth
 
 IOReturn IOElectrifyUserClient::togglePowerHook(IOElectrify* target, void* reference, IOExternalMethodArguments* arguments)
 {
-    target->mEnablePowerHook = (bool)arguments->scalarInput[0];
-    target->setProperty("PowerHook", target->mEnablePowerHook);
+    target->mPowerHook = (UInt32)arguments->scalarInput[0];
+    OSNumber *osNum;
+    osNum = OSNumber::withNumber (target->mPowerHook, sizeof (UInt32) * 8);
+    target->setProperty(kIOElectrifyPowerHookKey, osNum);
+    osNum->release();
     return kIOReturnSuccess;
 }
 

@@ -63,8 +63,6 @@ bool IOElectrifyBridge::init(OSDictionary *propTable)
         return false;
     }
 	
-    setProperty("PowerHook", mEnablePowerHook);
-	
     // place version/build info in ioreg properties DV,Build and DV,Version
     char buf[128];
     snprintf(buf, sizeof(buf), "%s %s", kmod_info.name, kmod_info.version);

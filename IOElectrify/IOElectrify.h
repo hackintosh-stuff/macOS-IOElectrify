@@ -51,7 +51,7 @@ public:
     virtual void stop(IOService *provider);
     virtual void free();
 	UInt32 TBFP(UInt32 ON);
-	bool mEnablePowerHook = false;
+	UInt32 mPowerHook = 0x0;
 #ifdef DEBUG
     virtual void detach(IOService *provider);
 #endif

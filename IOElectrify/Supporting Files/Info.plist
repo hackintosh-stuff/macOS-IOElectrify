@@ -29,7 +29,7 @@
 			<key>IOClass</key>
 			<string>IOElectrify</string>
 			<key>IOElectrifyPowerHook</key>
-			<false/>
+			<integer>0</integer>
 			<key>IONameMatch</key>
 			<array>
 				<string>PNP0C14</string>
